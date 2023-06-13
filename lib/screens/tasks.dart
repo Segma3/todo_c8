@@ -1,7 +1,9 @@
 import 'package:date_picker_timeline/date_picker_timeline.dart';
 import 'package:flutter/material.dart';
+import 'package:todo_c8/models/task_model.dart';
 import 'package:todo_c8/my_themes.dart';
 import 'package:todo_c8/screens/widgets/task_item.dart';
+import 'package:todo_c8/shared/networks/firebase/firebase_functions.dart';
 
 class tasksTap extends StatefulWidget {
   const tasksTap({Key? key}) : super(key: key);
@@ -30,9 +32,29 @@ class _tasksTapState extends State<tasksTap> {
             });
           },
         ),
-        Expanded(child: ListView.builder(itemBuilder: (context,index){
-          return taskItem();
-        },itemCount: 10,))
+        StreamBuilder(
+            stream: FirebaseFunctions.getTasksFromFireStore(date),
+            builder: (context, snapshot) {
+              if(snapshot.connectionState==ConnectionState.waiting){
+                return Center(child: CircularProgressIndicator());
+              }
+              if(snapshot.hasError){
+                Column(
+                  children: [
+                    Text('something went wrong'),
+                    ElevatedButton(onPressed: () {}, child: Text('try again')),
+                  ],
+                );
+              }
+              List<TaskModel>tasks =
+                  snapshot.data?.docs.map((e) => e.data()).toList()??[];
+
+              return Expanded(
+                child: ListView.builder(itemBuilder: (context, index) {
+                  return TaskItem(tasks[index]);
+                },itemCount: tasks.length,),
+              );
+            },)
       ],
     );
   }
